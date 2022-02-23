@@ -414,7 +414,8 @@ uint32_t Fifo[MAX_FIFO];
 //    e.g., must be a power of 2,4,8,16,32,64,128
 void OS_Fifo_Init(uint32_t size){
   // put Lab 2 (and beyond) solution here
-  long sr = StartCritical;
+  long sr;
+	sr = StartCritical();
   Fifo_PutPt = &Fifo[0];
   Fifo_GetPt = &Fifo[0];
   OS_InitSemaphore(&Fifo_CurrentSize, 0);
@@ -466,6 +467,7 @@ uint32_t OS_Fifo_Get(void){
       return data;
     }
   } 
+	return FIFOFAIL;
 };
 
 // ******** OS_Fifo_Size ************
@@ -488,8 +490,8 @@ MailBox_t mailbox;
 // Outputs: none
 void OS_MailBox_Init(void){
   // put Lab 2 (and beyond) solution here
-  OS_InitSemaphore(&mailbox.send, 0);
-  OS_InitSemaphore(&mailbox.ack, 1);
+  OS_InitSemaphore(&mailbox.Send, 0);
+  OS_InitSemaphore(&mailbox.Ack, 1);
 };
 
 // ******** OS_MailBox_Send ************
@@ -500,9 +502,9 @@ void OS_MailBox_Init(void){
 // It will spin/block if the MailBox contains data not yet received 
 void OS_MailBox_Send(uint32_t data){
   // put Lab 2 (and beyond) solution here
-  OS_bWait(&mailbox.send);
+  OS_bWait(&mailbox.Send);
   mailbox.mail = data;
-  OS_bSignal(&mailbox.ack);
+  OS_bSignal(&mailbox.Ack);
 };
 
 // ******** OS_MailBox_Recv ************
@@ -527,9 +529,9 @@ uint32_t OS_MailBox_Recv(void){
 uint32_t OS_Time(void){
   // put Lab 2 (and beyond) solution here
   uint32_t data;
-  OS_bWait(&mailbox.ack);
+  OS_bWait(&mailbox.Ack);
   data = mailbox.mail;
-  OS_bSignal(&mailbox.send);
+  OS_bSignal(&mailbox.Send);
   return data;
 };
 
