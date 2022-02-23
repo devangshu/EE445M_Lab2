@@ -362,8 +362,10 @@ void OS_Sleep(uint32_t sleepTime){
    * @brief TODO: Create task to decrement sleep counter of all sleeping threads
    * Periodic task triggered by hardware timer
    */
+  DisableInterrupts();
   current_TCB->sleep_ms = sleepTime;
   OS_Suspend();
+  EnableInterrupts();
 };  
 
 // ******** OS_Kill ************
@@ -372,11 +374,12 @@ void OS_Sleep(uint32_t sleepTime){
 // output: none
 void OS_Kill(void){
   // put Lab 2 (and beyond) solution here
+  DisableInterrupts();
   (current_TCB->prev)->next = NULL;
   current_TCB->current_state = DEAD;
   current_TCB->sleep_ms = 0;
-  EnableInterrupts();   // end of atomic section 
   OS_Suspend();
+  EnableInterrupts();   // end of atomic section 
 
   for(;;){};        // can not return
 }; 
