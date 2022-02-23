@@ -297,6 +297,7 @@ void Interpreter(void);    // just a prototype, link to your interpreter
 //*******************final user main DEMONTRATE THIS TO TA**********
 int realmain(void){     // realmain
   OS_Init();        // initialize, disable interrupts
+  UART_Init();
   PortD_Init();     // debugging profile
   MaxJitter = 0;    // in 1us units
   DataLost = 0;     // lost data between producer and consumer

@@ -33,8 +33,10 @@
 #include <string.h>
 #include "../inc/tm4c123gh6pm.h"
 #include "../inc/CortexM.h"
-#include "../RTOS_Labs_common/FIFO.h"
+#include "../RTOS_Labs_common/MyFifo.h"
 #include "../RTOS_Labs_common/UART0int.h"
+#include "../RTOS_Labs_common/OS.h"
+#include "../src/globals.h"
 
 #define NVIC_EN0_INT5           0x00000020  // Interrupt 5 enable
 
@@ -64,9 +66,12 @@
 #define FIFOSIZE   1024       // size of the FIFOs (must be power of 2)
 #define FIFOSUCCESS 1         // return value on success
 #define FIFOFAIL    0         // return value on failure
-                              // create index implementation FIFO (see FIFO.h)
-AddIndexFifo(Rx, FIFOSIZE, char, FIFOSUCCESS, FIFOFAIL)
-AddIndexFifo(Tx, 1024, char, FIFOSUCCESS, FIFOFAIL)
+
+
+// initialize the semaphors for rx and tx
+// create index implementation FIFO (see FIFO.h)
+// AddIndexFifo(Rx, FIFOSIZE, char, FIFOSUCCESS, FIFOFAIL)
+// AddIndexFifo(Tx, 1024, char, FIFOSUCCESS, FIFOFAIL)
 
 // Initialize UART0
 // Baud rate is 115200 bits/sec
@@ -118,7 +123,8 @@ void static copySoftwareToHardware(void){
 // spin if RxFifo is empty
 char UART_InChar(void){
   char letter;
-  while(RxFifo_Get(&letter) == FIFOFAIL){};
+  // while(RxFifo_Get(&letter) == FIFOFAIL){};
+  RxFifo_Get(&letter); // semaphore, not busy wait
   return(letter);
 }
 
@@ -140,7 +146,8 @@ char UART_InCharNonBlock(void){
 // Output: none
 // spin if TxFifo full
 void UART_OutChar(char data){
-  while(TxFifo_Put(data) == FIFOFAIL){};
+  // while(TxFifo_Put(data) == FIFOFAIL){};
+  TxFifo_Put(data); // semaphore, not busy wait
   UART0_IM_R &= ~UART_IM_TXIM;          // disable TX FIFO interrupt
   copySoftwareToHardware();
   UART0_IM_R |= UART_IM_TXIM;           // enable TX FIFO interrupt
