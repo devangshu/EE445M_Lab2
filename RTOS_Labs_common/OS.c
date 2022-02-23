@@ -480,16 +480,16 @@ int32_t OS_Fifo_Size(void){
   return Fifo_CurrentSize.Value;
 };
 
-
+// ******** Mailbox Globals ************
+MailBox_t mailbox;
 // ******** OS_MailBox_Init ************
 // Initialize communication channel
 // Inputs:  none
 // Outputs: none
 void OS_MailBox_Init(void){
   // put Lab 2 (and beyond) solution here
-  
-
-  // put solution here
+  OS_InitSemaphore(&mailbox.send, 0);
+  OS_InitSemaphore(&mailbox.ack, 1);
 };
 
 // ******** OS_MailBox_Send ************
@@ -500,9 +500,9 @@ void OS_MailBox_Init(void){
 // It will spin/block if the MailBox contains data not yet received 
 void OS_MailBox_Send(uint32_t data){
   // put Lab 2 (and beyond) solution here
-  // put solution here
-   
-
+  OS_bWait(&mailbox.send);
+  mailbox.mail = data;
+  OS_bSignal(&mailbox.ack);
 };
 
 // ******** OS_MailBox_Recv ************
@@ -526,8 +526,11 @@ uint32_t OS_MailBox_Recv(void){
 //   this function and OS_TimeDifference have the same resolution and precision 
 uint32_t OS_Time(void){
   // put Lab 2 (and beyond) solution here
-
-  return 0; // replace this line with solution
+  uint32_t data;
+  OS_bWait(&mailbox.ack);
+  data = mailbox.mail;
+  OS_bSignal(&mailbox.send);
+  return data;
 };
 
 // ******** OS_TimeDifference ************
