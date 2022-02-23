@@ -580,8 +580,11 @@ void OS_MailBox_Send(uint32_t data){
 // It will spin/block if the MailBox is empty 
 uint32_t OS_MailBox_Recv(void){
   // put Lab 2 (and beyond) solution here
- 
-  return 0; // replace this line with solution
+  uint32_t data;
+  OS_bWait(&mailbox.Ack);
+  data = mailbox.mail;
+  OS_bSignal(&mailbox.Send);
+  return data;
 };
 
 // ******** OS_Time ************
@@ -593,11 +596,7 @@ uint32_t OS_MailBox_Recv(void){
 //   this function and OS_TimeDifference have the same resolution and precision 
 uint32_t OS_Time(void){
   // put Lab 2 (and beyond) solution here
-  uint32_t data;
-  OS_bWait(&mailbox.Ack);
-  data = mailbox.mail;
-  OS_bSignal(&mailbox.Send);
-  return data;
+	return 0;
 };
 
 // ******** OS_TimeDifference ************
