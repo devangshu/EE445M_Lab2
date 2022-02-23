@@ -432,7 +432,7 @@ int Testmain2(void){  // Testmain2
 // tests AddThread, Sleep and Kill
 void Thread1c(void){ int i;
   Count1 = 0;          
-  for(i=0;i<=42;i++){
+  for(i=0;i<42;i++){
     PD0 ^= 0x01;       // heartbeat
     Count1++;
   }
@@ -664,5 +664,5 @@ int TestmainFIFO(void){   // TestmainFIFO
 
 //*******************Trampoline for selecting main to execute**********
 int main(void) { 			// main 
-	Testmain2();
+	Testmain3();
 }
