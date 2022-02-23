@@ -7,3 +7,4 @@
 *.map
 *.dep
 *.axf
+.DS_Store

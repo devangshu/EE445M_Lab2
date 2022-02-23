@@ -39,7 +39,7 @@
 #include "../inc/IRDistance.h"
 #include "../RTOS_Labs_common/OS.h"
 #include "../RTOS_Labs_common/Interpreter.h"
-#include "../RTOS_Labs_common/ST7735.h"
+#include "../RTOS_Labs_common/ST7735.h" 
 
 
 //*********Prototype for FFT in cr4_fft_64_stm32.s, STMicroelectronics
