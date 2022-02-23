@@ -8,4 +8,8 @@
 *.dep
 *.axf
 .DS_Store
+<<<<<<< HEAD
+.vscode
+=======
 .vscode/
+>>>>>>> main
