@@ -35,7 +35,7 @@ uint32_t * current_sp;
 int32_t * current_block_pt;
 
 TCB_t *RunPt;
-#define MAXTHREADS 5
+#define MAXTHREADS 10
 #define STACKDEPTH 128
 TCB_t TCBs[MAXTHREADS];
 uint32_t Stacks[MAXTHREADS][STACKDEPTH];
