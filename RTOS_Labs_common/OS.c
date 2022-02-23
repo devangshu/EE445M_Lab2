@@ -342,6 +342,10 @@ void GPIOPortF_Handler(void){
     GPIO_PORTF_IM_R &= ~0x10; // disarm interrupt
     (*SW1_Task)();
     int addThreadSuccess = OS_AddThread(&SW1_Debounce, 128, 1); // temporary hardcoded priority
+    if(addThreadSuccess == 0){
+       GPIO_PORTF_ICR_R = 0x10; // clear flag
+       GPIO_PORTF_IM_R |= 0x10; // arm interrupt again 
+    }
   }
 
 }
