@@ -40,6 +40,8 @@ TCB_t *RunPt;
 TCB_t TCBs[MAXTHREADS];
 uint32_t Stacks[MAXTHREADS][STACKDEPTH];
 
+#define MAX_FIFO 64
+
 
 void StartOS(void);
 void ContextSwitch(void);
@@ -391,18 +393,16 @@ void OS_Suspend(void){
   // call context switch for part 1
 		NVIC_ST_CURRENT_R = 0;
     ContextSwitch();
-//  current_TCB = current_TCB->next;
-//  current_sp = current_TCB->sp;
-//  current_block_pt = current_TCB->block_pt;
-//
-//  // implements OS_sleep functionality
-//  while ((current_TCB->sleep_ms || current_TCB->block_pt)) {
-//    current_TCB = current_TCB->next;
-//    current_sp = current_TCB->sp;
-//    current_block_pt = current_TCB->block_pt;
-//  }
 };
   
+// ******** Fifo Globals ************
+Sema4Type Fifo_CurrentSize;
+uint32_t *Fifo_PutPt;
+uint32_t *Fifo_GetPt;
+uint32_t Fifo[MAX_FIFO];
+#define FIFOSUCCESS 1 
+#define FIFOFAIL 0
+
 // ******** OS_Fifo_Init ************
 // Initialize the Fifo to be empty
 // Inputs: size
@@ -414,8 +414,11 @@ void OS_Suspend(void){
 //    e.g., must be a power of 2,4,8,16,32,64,128
 void OS_Fifo_Init(uint32_t size){
   // put Lab 2 (and beyond) solution here
-   
-  
+  long sr = StartCritical;
+  Fifo_PutPt = &Fifo[0];
+  Fifo_GetPt = &Fifo[0];
+  OS_InitSemaphore(&Fifo_CurrentSize, 0);
+  EndCritical(sr);
 };
 
 // ******** OS_Fifo_Put ************
@@ -428,8 +431,21 @@ void OS_Fifo_Init(uint32_t size){
 //  this function can not disable or enable interrupts
 int OS_Fifo_Put(uint32_t data){
   // put Lab 2 (and beyond) solution here
+  // Check to make sure there is space in the fifo
+  if (Fifo_CurrentSize.Value == MAX_FIFO){
+    return FIFOFAIL;
+  } else {
+    OS_Signal(&Fifo_CurrentSize);
+    // insert data and update put pointer
+    *Fifo_PutPt = data; 
+    Fifo_PutPt += 1;
 
-    return 0; // replace this line with solution
+    // if the fifo is full make sure to loop back around
+    if(Fifo_PutPt == &Fifo[MAX_FIFO]){
+      Fifo_PutPt = &Fifo[0];
+    }
+    return FIFOSUCCESS;
+  }
 };  
 
 // ******** OS_Fifo_Get ************
@@ -439,8 +455,17 @@ int OS_Fifo_Put(uint32_t data){
 // Outputs: data 
 uint32_t OS_Fifo_Get(void){
   // put Lab 2 (and beyond) solution here
-  
-  return 0; // replace this line with solution
+  OS_Wait(&Fifo_CurrentSize);
+  if(Fifo_GetPt == Fifo_PutPt){
+    return FIFOFAIL;
+  } else {
+    uint32_t data = *Fifo_GetPt;
+    Fifo_GetPt += 1;
+    if(Fifo_GetPt == &Fifo[MAX_FIFO]){
+      Fifo_GetPt = &Fifo[0];
+      return data;
+    }
+  } 
 };
 
 // ******** OS_Fifo_Size ************
@@ -451,9 +476,8 @@ uint32_t OS_Fifo_Get(void){
 //          zero or less than zero if the Fifo is empty 
 //          zero or less than zero if a call to OS_Fifo_Get will spin or block
 int32_t OS_Fifo_Size(void){
-  // put Lab 2 (and beyond) solution here
-   
-  return 0; // replace this line with solution
+  // put Lab 2 (and beyond) solution here 
+  return Fifo_CurrentSize.Value;
 };
 
 
