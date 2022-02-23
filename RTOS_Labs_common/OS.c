@@ -303,14 +303,25 @@ int OS_AddPeriodicThread(void(*task)(void),
 };
 
 
+void (*SW1_Task) (void);
+
+void SW1_Debounce(void){
+  OS_Sleep(10);
+  GPIO_PORTF_ICR_R = 0x10; // clear flag
+  GPIO_PORTF_IM_R |= 0x10; // arm interrupt again
+}
 /*----------------------------------------------------------------------------
   PF1 Interrupt Handler
  *----------------------------------------------------------------------------*/
 void GPIOPortF_Handler(void){
  
-}
+  if(GPIO_PORTF_RIS_R & 0x10 == 1){ // if SW1 is pressed
+    GPIO_PORTF_IM_R &= 0x10; // disarm interrupt
+    (*SW1_Task)();
+    int addThreadSuccess = OS_AddThread(&SW1_Debounce, 128, 1); // temporary hardcoded priority
+  }
 
-void (*SW1_Task) (void);
+}
 
 //******** OS_AddSW1Task *************** 
 // add a background task to run whenever the SW1 (PF4) button is pushed
