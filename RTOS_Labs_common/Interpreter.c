@@ -15,14 +15,16 @@
 #include "../RTOS_Labs_common/eDisk.h"
 #include "../RTOS_Labs_common/eFile.h"
 #include "../RTOS_Labs_common/ADC.h"
+#include "../src/globals.h"
 
 
 #define TRUE 1
 
+extern int32_t MaxJitter;
+
 // Print jitter histogram
 void Jitter(int32_t MaxJitter, uint32_t const JitterSize, uint32_t JitterHistogram[]){
-  // write this for Lab 3 (the latest)
-	
+    // write this for Lab 3 (the latest)	
 }
 
 static void OutCRLF(void){
@@ -31,7 +33,7 @@ static void OutCRLF(void){
 }
 
 void Interpreter_print_message(char * string) {
-    UART_OutString("Printing message\n\r");
+    UART_OutString("Displaying message on LCD\n\r");
     char linenum_ = string[3];
     int linenum = linenum_ - '0';
     // rest of string: index 5 to index 19
@@ -98,12 +100,21 @@ void Interpreter_help() {
     UART_OutString("------------------------------ \n\r");
 }
 
-void Interpreter_show_numthreads();
+void Interpreter_show_numthreads() {
+    UART_OutString("Checking number of threads running\n\r");
+    char outstring[50];
+    snprintf(outstring, 20, "Current number of threads: %d", NumCreated);
+    UART_OutString(outstring);
+    UART_OutString("\n\r");
+}
 
-void Interpreter_show_maxjitter();
-
-
-
+void Interpreter_show_maxjitter() {
+    UART_OutString("Checking maximum time jitter\n\r");
+    char outstring[50];
+    snprintf(outstring, 20, "Maximum jitter: %d", MaxJitter);
+    UART_OutString(outstring);
+    UART_OutString("\n\r");
+}
 
 // *********** Command line interpreter (shell) ************
 void Interpreter(void){ 

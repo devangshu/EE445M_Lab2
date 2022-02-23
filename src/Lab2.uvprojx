@@ -478,6 +478,11 @@
               <FileType>1</FileType>
               <FilePath>..\RTOS_Labs_common\ADC.c</FilePath>
             </File>
+            <File>
+              <FileName>globals.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\globals.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

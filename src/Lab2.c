@@ -28,6 +28,7 @@
 // PE2 Ain1 sampled at 250Hz, sequencer 0, by Producer, timer tigger
 
 #include <stdint.h>
+#include "globals.h"
 #include "../inc/tm4c123gh6pm.h"
 #include "../inc/CortexM.h"
 #include "../inc/LaunchPad.h"
@@ -47,7 +48,7 @@ void cr4_fft_64_stm32(void *pssOUT, void *pssIN, unsigned short Nbin);
 //*********Prototype for PID in PID_stm32.s, STMicroelectronics
 short PID_stm32(short Error, short *Coeff);
 
-uint32_t NumCreated;   // number of foreground threads created
+uint32_t NumCreated = 0;   // number of foreground threads created
 uint32_t PIDWork;      // current number of PID calculations finished
 uint32_t FilterWork;   // number of digital filter calculations finished
 uint32_t NumSamples;   // incremented every ADC sample, in Producer
