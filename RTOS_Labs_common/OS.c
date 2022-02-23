@@ -275,7 +275,12 @@ uint32_t OS_Id(void){
   return 0; // replace this line with solution
 };
 
+void(*PeriodicTask)(void);
 
+void Timer4A_Handler(void){
+  TIMER4_ICR_R = TIMER_ICR_TATOCINT;
+  (*PeriodicTask)();
+}
 //******** OS_AddPeriodicThread *************** 
 // add a background periodic task
 // typically this function receives the highest priority
@@ -297,9 +302,26 @@ uint32_t OS_Id(void){
 int OS_AddPeriodicThread(void(*task)(void), 
    uint32_t period, uint32_t priority){
   // put Lab 2 (and beyond) solution here
-  
-     
-  return 0; // replace this line with solution
+  long sr; 
+  sr = StartCritical();
+	SYSCTL_RCGCTIMER_R |= 0x10;   // 0) activate TIMER4
+  TIMER4_CTL_R = 0x00000000;    // 1) disable TIMER4A during setup
+  TIMER4_CFG_R = 0x00000000;    // 2) configure for 32-bit mode
+  TIMER4_TAMR_R = 0x00000002;   // 3) configure for periodic mode, default down-count settings
+  TIMER4_TAILR_R = period-1;    // 4) reload value
+  TIMER4_TAPR_R = 0;            // 5) bus clock resolution
+  TIMER4_ICR_R = 0x00000001;    // 6) clear TIMER4A timeout flag
+  TIMER4_IMR_R = 0x00000001;    // 7) arm timeout interrupt
+  priority = (priority & 0x07) << 21; // mask priority (nvic bits 23-21)
+  NVIC_PRI17_R = (NVIC_PRI17_R&0xF00FFFFF);
+  NVIC_PRI17_R = (NVIC_PRI17_R | priority); // 8) priority
+// interrupts enabled in the main program after all devices initialized
+// vector number 51, interrupt number 35
+  NVIC_EN2_R = 1<<(70-64);      // 9) enable IRQ 70 in NVIC 
+  TIMER4_CTL_R = 0x00000001;    // 10) enable TIMER4A
+  EndCritical(sr);  
+  PeriodicTask = task;
+  return 1; // replace this line with solution
 };
 
 
