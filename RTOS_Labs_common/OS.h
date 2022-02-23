@@ -52,6 +52,13 @@ struct TCB_t{
    ThreadState_t current_state;
 };
 
+struct MailBox{
+   Sema4Type Send;
+   Sema4Type Ack;
+   uint32_t mail;
+};
+typedef struct MailBox MailBox_t;
+
 /**
  * @details  Initialize operating system, disable interrupts until OS_Launch.
  * Initialize OS controlled I/O: serial, ADC, systick, LaunchPad I/O and timers.
