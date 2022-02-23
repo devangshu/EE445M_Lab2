@@ -483,6 +483,11 @@
               <FileType>5</FileType>
               <FilePath>.\globals.h</FilePath>
             </File>
+            <File>
+              <FileName>MyFifo.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\MyFifo.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

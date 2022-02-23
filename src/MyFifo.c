@@ -1,5 +1,5 @@
 #include <stdint.h>
-#include "MyFifo.h"
+#include "../RTOS_Labs_common/MyFifo.h"
 #include "../RTOS_Labs_common/OS.h"
 
 // AddIndexFifo(Rx, FIFOSIZE, char, FIFOSUCCESS, FIFOFAIL)

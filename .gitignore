@@ -8,3 +8,4 @@
 *.dep
 *.axf
 .DS_Store
+.vscode
