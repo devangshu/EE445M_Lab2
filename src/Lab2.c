@@ -282,7 +282,6 @@ void PID(void){
 // Interpreter is a foreground thread, accepts input from serial port, outputs to serial port
 // inputs:  none
 // outputs: none
-void Interpreter(void);    // just a prototype, link to your interpreter
 // add the following commands, leave other commands, if they make sense
 // 1) print performance measures 
 //    time-jitter, number of data points lost, number of calculations performed
@@ -665,5 +664,5 @@ int TestmainFIFO(void){   // TestmainFIFO
 
 //*******************Trampoline for selecting main to execute**********
 int main(void) { 			// main 
-	Testmain3();
+	realmain();
 }

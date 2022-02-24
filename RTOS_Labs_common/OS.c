@@ -35,7 +35,7 @@ uint32_t * current_sp;
 int32_t * current_block_pt;
 
 TCB_t *RunPt;
-#define MAXTHREADS 5
+#define MAXTHREADS 15
 #define STACKDEPTH 128
 TCB_t TCBs[MAXTHREADS];
 uint32_t Stacks[MAXTHREADS][STACKDEPTH];
@@ -565,7 +565,7 @@ void OS_ClearMsTime(void){
   // put Lab 1 solution here
     MsTime = 0;
 	// TODO some weird error when I try to use following call, not sure why, worked in CCS but not in Keil
-    //Timer1A_Init(updateMsTime, 80000, 1); //interrupts every ms assuming 80MHz
+    Timer1A_Init(updateMsTime, 80000, 1); //interrupts every ms assuming 80MHz
 };
 
 // ******** OS_MsTime ************

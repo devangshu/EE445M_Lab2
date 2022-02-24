@@ -15,6 +15,7 @@
 #include "../RTOS_Labs_common/eDisk.h"
 #include "../RTOS_Labs_common/eFile.h"
 #include "../RTOS_Labs_common/ADC.h"
+#include "../RTOS_Labs_common/Interpreter.h"
 #include "../src/globals.h"
 
 
@@ -103,7 +104,7 @@ void Interpreter_help() {
 void Interpreter_show_numthreads() {
     UART_OutString("Checking number of threads running\n\r");
     char outstring[50];
-    snprintf(outstring, 20, "Current number of threads: %d", NumCreated);
+    snprintf(outstring, 50, "%d threads", NumCreated);
     UART_OutString(outstring);
     UART_OutString("\n\r");
 }
@@ -111,7 +112,7 @@ void Interpreter_show_numthreads() {
 void Interpreter_show_maxjitter() {
     UART_OutString("Checking maximum time jitter\n\r");
     char outstring[50];
-    snprintf(outstring, 20, "Maximum jitter: %d", MaxJitter);
+    snprintf(outstring, 50, "%d ms", MaxJitter);
     UART_OutString(outstring);
     UART_OutString("\n\r");
 }
@@ -119,7 +120,7 @@ void Interpreter_show_maxjitter() {
 // *********** Command line interpreter (shell) ************
 void Interpreter(void){ 
     UART_Init();
-    UART_OutString("EE445M Lab 1 Interpreter");
+    UART_OutString("EE445M Lab 2 Interpreter");
     OutCRLF();
     
     char string[20];

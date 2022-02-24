@@ -1,3 +1,6 @@
+#ifndef INTERPRETER_H
+#define INTERPRETER_H
+
 /**
  * @file      Interpreter.h
  * @brief     Real Time Operating System for Labs 2, 3 and 4
@@ -23,3 +26,4 @@
  */
 void Interpreter(void);
 
+#endif

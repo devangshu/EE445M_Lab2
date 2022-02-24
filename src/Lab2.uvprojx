@@ -488,6 +488,11 @@
               <FileType>1</FileType>
               <FilePath>.\MyFifo.c</FilePath>
             </File>
+            <File>
+              <FileName>Timer1A.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\inc\Timer1A.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
