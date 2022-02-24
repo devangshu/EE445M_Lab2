@@ -21,7 +21,7 @@
 
 #define TRUE 1
 
-extern int32_t MaxJitter;
+// extern int32_t MaxJitter;
 
 // Print jitter histogram
 void Jitter(int32_t MaxJitter, uint32_t const JitterSize, uint32_t JitterHistogram[]){
