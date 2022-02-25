@@ -9,3 +9,4 @@
 *.axf
 .DS_Store
 .vscode/
+*.orig

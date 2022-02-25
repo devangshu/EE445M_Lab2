@@ -31,15 +31,19 @@ uint32_t const JitterSize=JITTERSIZE;
 uint32_t JitterHistogram[JITTERSIZE]={0,};
 
 // Lab  2 stuff
-TCB_t * current_TCB;
+TCB_t * RunPt;
 uint32_t * current_sp;
 int32_t * current_block_pt;
 
 TCB_t *RunPt;
-#define MAXTHREADS 15
+#define MAXTHREADS 10
 #define STACKDEPTH 128
 TCB_t TCBs[MAXTHREADS];
 uint32_t Stacks[MAXTHREADS][STACKDEPTH];
+uint32_t NumThreads_Global;
+#define TIME1MS 80000
+uint32_t MsTime = 0;
+
 
 #define MAX_FIFO 64
 
@@ -52,6 +56,38 @@ void ContextSwitch(void);
 // make size 7-10 static array of tcbs
 // stack is 2d array, one array for each thread, size 128 bytes works
 
+
+static void Timer3A_Init(void){
+	unsigned long sr = StartCritical();
+	SYSCTL_RCGCTIMER_R |= 0x08;   // 0) activate TIMER3
+	TIMER3_CTL_R = 0x00000000;    // 1) disable TIMER3A during setup
+	TIMER3_CFG_R = 0x00000000;    // 2) configure for 32-bit mode
+	TIMER3_TAMR_R = 0x00000002;   // 3) configure for periodic mode, default down-count settings
+	TIMER3_TAILR_R = TIME1MS-1;    // 4) reload value
+	TIMER3_TAPR_R = 0;            // 5) bus clock resolution
+	TIMER3_ICR_R = 0x00000001;    // 6) clear TIMER3A timeout flag
+	TIMER3_IMR_R = 0x00000001;    // 7) arm timeout interrupt
+	NVIC_PRI8_R = (NVIC_PRI8_R&0x00FFFFFF)|0x20000000; // 8) priority 1
+	// vector number 51, interrupt number 35
+	NVIC_EN1_R = 1<<(35-32);      // 9) enable IRQ 35 in NVIC
+	TIMER3_CTL_R = 0x00000001;    // 10) enable TIMER3A
+  MsTime = 0;
+	EndCritical(sr);
+}
+
+void Timer3A_Handler(void){
+	TIMER3_ICR_R = TIMER_ICR_TATOCINT;
+	MsTime++;
+	for(int i = 0; i < NumThreads_Global; i++){
+		if(TCBs[i].current_state == SLEEP){
+			TCBs[i].sleep_ms--;
+			if(TCBs[i].sleep_ms == 0){
+				TCBs[i].current_state = ACTIVE;
+			}
+		}
+	}
+}
+
 /*------------------------------------------------------------------------------
   Systick Interrupt Handler
   SysTick interrupt happens every 10 ms
@@ -59,7 +95,9 @@ void ContextSwitch(void);
  *------------------------------------------------------------------------------*/
 void SysTick_Handler(void) {
 
+	//PD3^=0x08;
 	OS_Suspend();
+	//PD3^=0x08;
 
 } // end SysTick_Handler
 
@@ -90,6 +128,7 @@ void OS_Init(void){
   // put Lab 2 (and beyond) solution here
   DisableInterrupts();
   PLL_Init(Bus80MHz);
+	Timer3A_Init();
 
   // initialize all TCBs
   uint32_t i;
@@ -99,6 +138,7 @@ void OS_Init(void){
 
   SysTick_Init(10000); //not using period, gets reset later anyway
   NVIC_SYS_PRI3_R =(NVIC_SYS_PRI3_R&0xFF00FFFF)|0x00E00000; // initialize PendSV
+	NumThreads_Global = 0;
 
 }; 
 
@@ -111,6 +151,7 @@ void OS_InitSemaphore(Sema4Type *semaPt, int32_t value){
   semaPt-> Value = value;
 }; 
 
+
 // ******** OS_Wait ************
 // decrement semaphore 
 // Lab2 spinlock
@@ -121,7 +162,8 @@ void OS_Wait(Sema4Type *semaPt){
   // put Lab 2 (and beyond) solution here
   DisableInterrupts(); // disable interrupts to make sure current thread is the only thread trying to access the semaphore at any given time 
   while(semaPt->Value <= 0){
-    EnableInterrupts(); // if current thread cannot access the semaphore, give up time to other threads so we don't starve them while busy waiting
+    EnableInterrupts();
+		OS_Suspend();
     DisableInterrupts();
   }
   semaPt->Value -= 1;
@@ -150,6 +192,7 @@ void OS_bWait(Sema4Type *semaPt){
   while(semaPt->Value <= 0){ // same as OS_Wait, allow other threads to access cpu time
     EnableInterrupts();
     //Trigger PendSV
+		OS_Suspend();
     DisableInterrupts();
   }
   semaPt->Value -= 1;
@@ -221,26 +264,27 @@ int OS_AddThread(void(*task)(void),
     TCBs[numTCBs].next = &TCBs[0]; // only one thread running, single element linked list loops back to itself
     RunPt = &TCBs[numTCBs];
   } else {
-    struct TCB_t *tempPt = RunPt;
-    while(tempPt->next != RunPt){
-      tempPt = tempPt->next; // cycle through until end of linked list
-    }
-    tempPt->next = &TCBs[numTCBs];
-    tempPt = tempPt->next;
-    tempPt->next = RunPt; // insert new tcb into the linked list
 
-    //      if(RunPt->current_state == DEAD){
-    //          EndCritical(sr);
-    //          return 0;
-    //      }
+      if(RunPt->current_state == DEAD){
+          EndCritical(sr);
+          return 0;
+      }
+
+      struct TCB_t *tempPt = RunPt;
+      while(tempPt->next != RunPt){
+          tempPt = tempPt->next; // cycle through until end of linked list
+      }
+      tempPt->next = &TCBs[numTCBs];
+      tempPt = tempPt->next;
+      tempPt->next = RunPt;
   }
-  
-  SetInitialStack(numTCBs); // initialize stack for new tcb
+
+  SetInitialStack(numTCBs);
   Stacks[numTCBs][STACKDEPTH - 2] = (int32_t)task; // set the program counter for task stack
   TCBs[numTCBs].sleep_ms = 0;
   TCBs[numTCBs].current_state = ACTIVE;
   TCBs[numTCBs].id = numTCBs;
-
+	NumThreads_Global++;
   EndCritical(sr);
      
   return 1;
@@ -419,9 +463,11 @@ int OS_AddSW2Task(void(*task)(void), uint32_t priority){
 // OS_Sleep(0) implements cooperative multitasking
 void OS_Sleep(uint32_t sleepTime){
   DisableInterrupts();
-  current_TCB->sleep_ms = sleepTime; // set sleep time, is decremented in timer 3 handler
-  OS_Suspend();
+  RunPt->sleep_ms = sleepTime;
+	RunPt->current_state = SLEEP;
   EnableInterrupts();
+	OS_Suspend();
+
 };  
 
 // ******** OS_Kill ************
@@ -431,11 +477,13 @@ void OS_Sleep(uint32_t sleepTime){
 void OS_Kill(void){
   // put Lab 2 (and beyond) solution here
   DisableInterrupts();
-  (current_TCB->prev)->next = NULL;
-  current_TCB->current_state = DEAD; // marks this TCB as free for future threads to run
-  current_TCB->sleep_ms = 0;
-  OS_Suspend();
+  (RunPt->prev)->next = RunPt->next;
+	(RunPt->next)->prev = RunPt->prev;
+  RunPt->current_state = DEAD;
+  RunPt->sleep_ms = 0;
+	NumThreads_Global--;
   EnableInterrupts();   // end of atomic section 
+	OS_Suspend();
 
   for(;;){};        // can not return
 }; 
@@ -450,7 +498,7 @@ void OS_Kill(void){
 void OS_Suspend(void){
   // put Lab 2 (and beyond) solution here
   // call context switch for part 1
-		NVIC_ST_CURRENT_R = 0;
+		//NVIC_ST_CURRENT_R = 0;
     ContextSwitch();
 };
   
@@ -589,7 +637,8 @@ uint32_t OS_MailBox_Recv(void){
 // It is ok to change the resolution and precision of this function as long as 
 //   this function and OS_TimeDifference have the same resolution and precision 
 uint32_t OS_Time(void){
-  return TIMER1_TAR_R; // timer 1 register value
+  // put Lab 2 (and beyond) solution here
+  return MsTime;
 };
 
 // ******** OS_TimeDifference ************
@@ -600,15 +649,21 @@ uint32_t OS_Time(void){
 // It is ok to change the resolution and precision of this function as long as 
 //   this function and OS_Time have the same resolution and precision 
 uint32_t OS_TimeDifference(uint32_t start, uint32_t stop){
-  // compute time difference
-  return start > stop ? (stop + UINT32_MAX - start) : stop - start;
+  // put Lab 2 (and beyond) solution here
+  // if (start > stop) {
+  //   return start - stop;
+  // } else {
+  //   stop - start;
+  // }
+
+  //return start > stop ? (stop + UINT32_MAX - start) : stop - start;
+	int32_t time_difference = stop - start;
+	if(time_difference < 0){
+		time_difference += UINT32_MAX;
+	}
+	return time_difference;
 };
 
-uint32_t MsTime = 0;
-
-static void updateMsTime(void){
-    MsTime++;
-}
 // ******** OS_ClearMsTime ************
 // sets the system time to zero (solve for Lab 1), and start a periodic interrupt
 // Inputs:  none
@@ -617,8 +672,7 @@ static void updateMsTime(void){
 void OS_ClearMsTime(void){
   // put Lab 1 solution here
     MsTime = 0;
-	// TODO some weird error when I try to use following call, not sure why, worked in CCS but not in Keil
-    Timer1A_Init(updateMsTime, 80000, 1); //interrupts every ms assuming 80MHz
+		TIMER3_TAR_R = TIME1MS - 1;
 };
 
 // ******** OS_MsTime ************
