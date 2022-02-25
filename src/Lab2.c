@@ -298,6 +298,7 @@ void PID(void){
 int realmain(void){     // realmain
   OS_Init();        // initialize, disable interrupts
   PortD_Init();     // debugging profile
+  ST7735_InitR(INITR_REDTAB);
   MaxJitter = 0;    // in 1us units
   DataLost = 0;     // lost data between producer and consumer
   NumSamples = 0;
@@ -666,4 +667,5 @@ int TestmainFIFO(void){   // TestmainFIFO
 //*******************Trampoline for selecting main to execute**********
 int main(void) { 			// main 
 	realmain();
+
 }
