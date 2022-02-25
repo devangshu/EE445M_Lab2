@@ -21,10 +21,11 @@
 #include "../inc/ADCT0ATrigger.h"
 #include "../RTOS_Labs_common/UART0int.h"
 #include "../RTOS_Labs_common/eFile.h"
+#include "../src/globals.h"
 
 
 // Performance Measurements 
-int32_t MaxJitter;             // largest time jitter between interrupts in usec
+int32_t MaxJitter = 0;             // largest time jitter between interrupts in usec
 #define JITTERSIZE 64
 uint32_t const JitterSize=JITTERSIZE;
 uint32_t JitterHistogram[JITTERSIZE]={0,};
@@ -596,7 +597,7 @@ uint32_t OS_MailBox_Recv(void){
 //   this function and OS_TimeDifference have the same resolution and precision 
 uint32_t OS_Time(void){
   // put Lab 2 (and beyond) solution here
-	return 0;
+  return TIMER1_TAR_R;
 };
 
 // ******** OS_TimeDifference ************
@@ -608,8 +609,14 @@ uint32_t OS_Time(void){
 //   this function and OS_Time have the same resolution and precision 
 uint32_t OS_TimeDifference(uint32_t start, uint32_t stop){
   // put Lab 2 (and beyond) solution here
+  // if (start > stop) {
+  //   return start - stop;
+  // } else {
+  //   stop - start;
+  // }
 
-  return 0; // replace this line with solution
+  return start > stop ? (stop + UINT32_MAX - start) : stop - start;
+  // return 0; // replace this line with solution
 };
 
 uint32_t MsTime = 0;

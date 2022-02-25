@@ -28,6 +28,7 @@
 // PE2 Ain1 sampled at 250Hz, sequencer 0, by Producer, timer tigger
 
 #include <stdint.h>
+#include "globals.h"
 #include "../inc/tm4c123gh6pm.h"
 #include "../inc/CortexM.h"
 #include "../inc/LaunchPad.h"
@@ -39,7 +40,8 @@
 #include "../inc/IRDistance.h"
 #include "../RTOS_Labs_common/OS.h"
 #include "../RTOS_Labs_common/Interpreter.h"
-#include "../RTOS_Labs_common/ST7735.h"
+#include "../RTOS_Labs_common/ST7735.h" 
+#include "../src/globals.h"
 
 
 //*********Prototype for FFT in cr4_fft_64_stm32.s, STMicroelectronics
@@ -47,7 +49,7 @@ void cr4_fft_64_stm32(void *pssOUT, void *pssIN, unsigned short Nbin);
 //*********Prototype for PID in PID_stm32.s, STMicroelectronics
 short PID_stm32(short Error, short *Coeff);
 
-uint32_t NumCreated;   // number of foreground threads created
+uint32_t NumCreated = 0;   // number of foreground threads created
 uint32_t PIDWork;      // current number of PID calculations finished
 uint32_t FilterWork;   // number of digital filter calculations finished
 uint32_t NumSamples;   // incremented every ADC sample, in Producer
@@ -60,7 +62,7 @@ int32_t x[64],y[64];           // input and output arrays for FFT
 
 //---------------------User debugging-----------------------
 uint32_t DataLost;     // data sent by Producer, but not received by Consumer
-extern int32_t MaxJitter;             // largest time jitter between interrupts in usec
+// extern int32_t MaxJitter;             // largest time jitter between interrupts in usec
 extern uint32_t const JitterSize;
 extern uint32_t JitterHistogram[];
 
@@ -281,7 +283,6 @@ void PID(void){
 // Interpreter is a foreground thread, accepts input from serial port, outputs to serial port
 // inputs:  none
 // outputs: none
-void Interpreter(void);    // just a prototype, link to your interpreter
 // add the following commands, leave other commands, if they make sense
 // 1) print performance measures 
 //    time-jitter, number of data points lost, number of calculations performed
@@ -312,7 +313,7 @@ int realmain(void){     // realmain
 	
   // attach background tasks
   OS_AddSW1Task(&SW1Push,2);
-  OS_AddPeriodicThread(&DAS,PERIOD,1); // 2 kHz real time sampling of PE3
+  OS_AddPeriodicThread(&DAS,PERIOD,0); // 2 kHz real time sampling of PE3
 
 	// create initial foreground threads
   NumCreated = 0;
@@ -665,5 +666,6 @@ int TestmainFIFO(void){   // TestmainFIFO
 
 //*******************Trampoline for selecting main to execute**********
 int main(void) { 			// main 
-	TestmainFIFO();
+	realmain();
+
 }
