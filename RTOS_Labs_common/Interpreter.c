@@ -104,7 +104,7 @@ void Interpreter_help() {
 void Interpreter_show_numthreads() {
     UART_OutString("Checking number of threads running\n\r");
     char outstring[50];
-    snprintf(outstring, 50, "%d threads", NumCreated);
+    snprintf(outstring, 50, "%d threads", NumThreads_Global);
     UART_OutString(outstring);
     UART_OutString("\n\r");
 }

@@ -40,7 +40,7 @@ TCB_t *RunPt;
 #define STACKDEPTH 128
 TCB_t TCBs[MAXTHREADS];
 uint32_t Stacks[MAXTHREADS][STACKDEPTH];
-uint32_t NumThreads_Global;
+uint32_t NumThreads_Global = 0;
 #define TIME1MS 80000
 uint32_t MsTime = 0;
 
