@@ -94,7 +94,7 @@ void OS_Init(void){
   // initialize all TCBs
   uint32_t i;
   for(i = 0; i < MAXTHREADS; i++){
-      TCBs[i].current_state = DEAD;
+      TCBs[i].current_state = DEAD; // initialize all TCBs as free
   }
 
   SysTick_Init(10000); //not using period, gets reset later anyway
@@ -108,7 +108,6 @@ void OS_Init(void){
 // input:  pointer to a semaphore
 // output: none
 void OS_InitSemaphore(Sema4Type *semaPt, int32_t value){
-  // put Lab 2 (and beyond) solution here
   semaPt-> Value = value;
 }; 
 
@@ -120,13 +119,13 @@ void OS_InitSemaphore(Sema4Type *semaPt, int32_t value){
 // output: none
 void OS_Wait(Sema4Type *semaPt){
   // put Lab 2 (and beyond) solution here
-  DisableInterrupts();
+  DisableInterrupts(); // disable interrupts to make sure current thread is the only thread trying to access the semaphore at any given time 
   while(semaPt->Value <= 0){
-    EnableInterrupts();
+    EnableInterrupts(); // if current thread cannot access the semaphore, give up time to other threads so we don't starve them while busy waiting
     DisableInterrupts();
   }
   semaPt->Value -= 1;
-  EnableInterrupts(); 
+  EnableInterrupts(); // allow other threads to request semaphore after we have acquired it
 }; 
 
 // ******** OS_Signal ************
@@ -136,9 +135,8 @@ void OS_Wait(Sema4Type *semaPt){
 // input:  pointer to a counting semaphore
 // output: none
 void OS_Signal(Sema4Type *semaPt){
-  // put Lab 2 (and beyond) solution here
   long sr = StartCritical();
-  semaPt->Value += 1;
+  semaPt->Value += 1; // increment semaphore value atomically. If value was at 0, this allows a waiting thread to acquire the semaphore.
   EndCritical(sr);
 }; 
 
@@ -148,9 +146,8 @@ void OS_Signal(Sema4Type *semaPt){
 // input:  pointer to a binary semaphore
 // output: none
 void OS_bWait(Sema4Type *semaPt){
-  // put Lab 2 (and beyond) solution here
   DisableInterrupts();
-  while(semaPt->Value <= 0){
+  while(semaPt->Value <= 0){ // same as OS_Wait, allow other threads to access cpu time
     EnableInterrupts();
     //Trigger PendSV
     DisableInterrupts();
@@ -168,13 +165,14 @@ void OS_bSignal(Sema4Type *semaPt){
   // put Lab 2 (and beyond) solution here
   long sr;
   sr = StartCritical();
-  semaPt->Value += 1;
+  semaPt->Value += 1; // same as OS_Signal, atomically increment semaphore value
   EndCritical(sr);
 }; 
 
 void SetInitialStack(int i){
   TCBs[i].sp = &Stacks[i][STACKDEPTH-16]; // thread stack pointer
   Stacks[i][STACKDEPTH-1] = 0x01000000;   // thumb bit
+  // Stacks[i][STACKDEPTH-2] is PC
   Stacks[i][STACKDEPTH-3] = 0x14141414;   // R14
   Stacks[i][STACKDEPTH-4] = 0x12121212;   // R12
   Stacks[i][STACKDEPTH-5] = 0x03030303;   // R3
@@ -201,50 +199,51 @@ void SetInitialStack(int i){
 // In Lab 2, you can ignore both the stackSize and priority fields
 // In Lab 3, you can ignore the stackSize fields
 int OS_AddThread(void(*task)(void), 
-   uint32_t stackSize, uint32_t priority){
-  // put Lab 2 (and beyond) solution here
-  long sr = StartCritical();
+  uint32_t stackSize, uint32_t priority){
+
+  long sr = StartCritical(); // ensure this is atomic
   uint32_t numTCBs;
+
+  // find first free TCB
   for(numTCBs = 0; numTCBs < MAXTHREADS; numTCBs++){
-      if(TCBs[numTCBs].current_state == DEAD){
-          break;
-      }
+    if(TCBs[numTCBs].current_state == DEAD){
+      break;
+    }
   }
   
   // check to make sure we have room to add another thread
   if(numTCBs == MAXTHREADS){
-      EndCritical(sr);
-      return 0;
+    EndCritical(sr);
+    return 0;
   }
 
   if(numTCBs == 0){
-      TCBs[numTCBs].next = &TCBs[0]; // only one thread running
-      RunPt = &TCBs[numTCBs];
+    TCBs[numTCBs].next = &TCBs[0]; // only one thread running, single element linked list loops back to itself
+    RunPt = &TCBs[numTCBs];
   } else {
+    struct TCB_t *tempPt = RunPt;
+    while(tempPt->next != RunPt){
+      tempPt = tempPt->next; // cycle through until end of linked list
+    }
+    tempPt->next = &TCBs[numTCBs];
+    tempPt = tempPt->next;
+    tempPt->next = RunPt; // insert new tcb into the linked list
 
-//      if(RunPt->current_state == DEAD){
-//          EndCritical(sr);
-//          return 0;
-//      }
-
-      struct TCB_t *tempPt = RunPt;
-      while(tempPt->next != RunPt){
-          tempPt = tempPt->next; // cycle through until end of linked list
-      }
-      tempPt->next = &TCBs[numTCBs];
-      tempPt = tempPt->next;
-      tempPt->next = RunPt;
+    //      if(RunPt->current_state == DEAD){
+    //          EndCritical(sr);
+    //          return 0;
+    //      }
   }
-
-  SetInitialStack(numTCBs);
+  
+  SetInitialStack(numTCBs); // initialize stack for new tcb
   Stacks[numTCBs][STACKDEPTH - 2] = (int32_t)task; // set the program counter for task stack
   TCBs[numTCBs].sleep_ms = 0;
-  TCBs[numTCBs].current_state = ACTIVE; // @gagan what is difference between active state and run state?
+  TCBs[numTCBs].current_state = ACTIVE;
   TCBs[numTCBs].id = numTCBs;
 
   EndCritical(sr);
      
-  return 1; // replace this line with solution
+  return 1;
 };
 
 //******** OS_AddProcess *************** 
@@ -304,7 +303,7 @@ int OS_AddPeriodicThread(void(*task)(void),
    uint32_t period, uint32_t priority){
   // put Lab 2 (and beyond) solution here
   long sr; 
-  sr = StartCritical();
+  sr = StartCritical(); // make this function atomic
 	SYSCTL_RCGCTIMER_R |= 0x10;   // 0) activate TIMER4
   TIMER4_CTL_R = 0x00000000;    // 1) disable TIMER4A during setup
   TIMER4_CFG_R = 0x00000000;    // 2) configure for 32-bit mode
@@ -316,13 +315,13 @@ int OS_AddPeriodicThread(void(*task)(void),
   priority = (priority & 0x07) << 21; // mask priority (nvic bits 23-21)
   NVIC_PRI17_R = (NVIC_PRI17_R&0xF00FFFFF);
   NVIC_PRI17_R = (NVIC_PRI17_R | priority); // 8) priority
-// interrupts enabled in the main program after all devices initialized
-// vector number 51, interrupt number 35
+  // interrupts enabled in the main program after all devices initialized
+  // vector number 51, interrupt number 35
   NVIC_EN2_R = 1<<(70-64);      // 9) enable IRQ 70 in NVIC 
   TIMER4_CTL_R = 0x00000001;    // 10) enable TIMER4A
   EndCritical(sr);  
   PeriodicTask = task;
-  return 1; // replace this line with solution
+  return 1;
 };
 
 
@@ -419,14 +418,8 @@ int OS_AddSW2Task(void(*task)(void), uint32_t priority){
 // You are free to select the time resolution for this function
 // OS_Sleep(0) implements cooperative multitasking
 void OS_Sleep(uint32_t sleepTime){
-  // put Lab 2 (and beyond) solution here
-
-  /**
-   * @brief TODO: Create task to decrement sleep counter of all sleeping threads
-   * Periodic task triggered by hardware timer
-   */
   DisableInterrupts();
-  current_TCB->sleep_ms = sleepTime;
+  current_TCB->sleep_ms = sleepTime; // set sleep time, is decremented in timer 3 handler
   OS_Suspend();
   EnableInterrupts();
 };  
@@ -439,7 +432,7 @@ void OS_Kill(void){
   // put Lab 2 (and beyond) solution here
   DisableInterrupts();
   (current_TCB->prev)->next = NULL;
-  current_TCB->current_state = DEAD;
+  current_TCB->current_state = DEAD; // marks this TCB as free for future threads to run
   current_TCB->sleep_ms = 0;
   OS_Suspend();
   EnableInterrupts();   // end of atomic section 
@@ -479,7 +472,7 @@ uint32_t Fifo[MAX_FIFO];
 //    e.g., 4 to 64 elements
 //    e.g., must be a power of 2,4,8,16,32,64,128
 void OS_Fifo_Init(uint32_t size){
-  // put Lab 2 (and beyond) solution here
+  // initializes fifo array, initializes semaphore to control access
   long sr;
 	sr = StartCritical();
   Fifo_PutPt = &Fifo[0];
@@ -513,7 +506,7 @@ int OS_Fifo_Put(uint32_t data){
     }
     return FIFOSUCCESS;
   }
-};  
+}
 
 // ******** OS_Fifo_Get ************
 // Remove one data sample from the Fifo
@@ -521,7 +514,7 @@ int OS_Fifo_Put(uint32_t data){
 // Inputs:  none
 // Outputs: data 
 uint32_t OS_Fifo_Get(void){
-  // put Lab 2 (and beyond) solution here
+  // wait until there's elements on the fifo
   OS_Wait(&Fifo_CurrentSize);
   if(Fifo_GetPt == Fifo_PutPt){
     return FIFOFAIL;
@@ -596,8 +589,7 @@ uint32_t OS_MailBox_Recv(void){
 // It is ok to change the resolution and precision of this function as long as 
 //   this function and OS_TimeDifference have the same resolution and precision 
 uint32_t OS_Time(void){
-  // put Lab 2 (and beyond) solution here
-  return TIMER1_TAR_R;
+  return TIMER1_TAR_R; // timer 1 register value
 };
 
 // ******** OS_TimeDifference ************
@@ -608,15 +600,8 @@ uint32_t OS_Time(void){
 // It is ok to change the resolution and precision of this function as long as 
 //   this function and OS_Time have the same resolution and precision 
 uint32_t OS_TimeDifference(uint32_t start, uint32_t stop){
-  // put Lab 2 (and beyond) solution here
-  // if (start > stop) {
-  //   return start - stop;
-  // } else {
-  //   stop - start;
-  // }
-
+  // compute time difference
   return start > stop ? (stop + UINT32_MAX - start) : stop - start;
-  // return 0; // replace this line with solution
 };
 
 uint32_t MsTime = 0;
@@ -657,7 +642,6 @@ uint32_t OS_MsTime(void){
 // In Lab 3, you should implement the user-defined TimeSlice field
 // It is ok to limit the range of theTimeSlice to match the 24-bit SysTick
 void OS_Launch(uint32_t theTimeSlice){
-  // put Lab 2 (and beyond) solution here
   NVIC_ST_RELOAD_R = theTimeSlice - 1;
   NVIC_ST_CTRL_R = 0x00000007;
   StartOS();
